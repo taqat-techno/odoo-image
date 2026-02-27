@@ -58,8 +58,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     ca-certificates \
     xz-utils \
-    # Required by python-ldap / gevent build
+    # Required by python-ldap / gevent / libsass build
     gcc \
+    g++ \
+    make \
     python3-dev \
     libffi-dev \
  && rm -rf /var/lib/apt/lists/*

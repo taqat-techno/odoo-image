@@ -20,10 +20,10 @@ jobs:
       matrix:
         include:
           - odoo_version: "14"
-            python_version: "3.9"
+            python_version: "3.8"
             debian_codename: "bullseye"
           - odoo_version: "15"
-            python_version: "3.10"
+            python_version: "3.8"
             debian_codename: "bullseye"
           - odoo_version: "16"
             python_version: "3.10"
