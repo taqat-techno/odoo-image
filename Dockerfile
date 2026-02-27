@@ -4,7 +4,7 @@
 #
 # Build:
 #   docker build --build-arg ODOO_VERSION=19 --build-arg PYTHON_VERSION=3.12 \
-#     -t alakosha/odoo-image:19.0 .
+#     --build-arg DEBIAN_CODENAME=bookworm -t alakosha/odoo-image:19.0 .
 #
 # Pull pre-built:
 #   docker pull alakosha/odoo-image:19.0
@@ -12,10 +12,12 @@
 
 ARG ODOO_VERSION=19
 ARG PYTHON_VERSION=3.12
+ARG DEBIAN_CODENAME=bookworm
 
-FROM python:${PYTHON_VERSION}-slim-bookworm
+FROM python:${PYTHON_VERSION}-slim-${DEBIAN_CODENAME}
 
 ARG ODOO_VERSION
+ARG DEBIAN_CODENAME
 
 LABEL maintainer="TaqaTechno <info@taqatechno.com>" \
       org.opencontainers.image.title="Odoo Enterprise ${ODOO_VERSION}" \
@@ -56,15 +58,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     ca-certificates \
     xz-utils \
-    # Required by python-ldap build
+    # Required by python-ldap / gevent build
     gcc \
     python3-dev \
     libffi-dev \
  && rm -rf /var/lib/apt/lists/*
 
-# ── wkhtmltopdf 0.12.6 (bookworm build) ───────────────────────────────────────
-RUN wget -q -O /tmp/wkhtmltopdf.deb \
-    "https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.bookworm_amd64.deb" \
+# ── wkhtmltopdf 0.12.6 (version matched to Debian release) ───────────────────
+RUN if [ "$DEBIAN_CODENAME" = "bookworm" ]; then \
+      WKHTML_URL="https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.bookworm_amd64.deb"; \
+    else \
+      WKHTML_URL="https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-2/wkhtmltox_0.12.6.1-2.bullseye_amd64.deb"; \
+    fi \
+ && wget -q -O /tmp/wkhtmltopdf.deb "$WKHTML_URL" \
  && apt-get update && apt-get install -y --no-install-recommends /tmp/wkhtmltopdf.deb \
  && rm /tmp/wkhtmltopdf.deb \
  && rm -rf /var/lib/apt/lists/*
