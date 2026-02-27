@@ -84,10 +84,10 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
  && rm -rf /var/lib/apt/lists/*
 
 # ── Python dependencies ────────────────────────────────────────────────────────
-COPY requirements-${ODOO_VERSION}.txt /tmp/requirements.txt
+COPY requirements-*.txt /tmp/
 RUN pip install --no-cache-dir --upgrade pip \
- && pip install --no-cache-dir -r /tmp/requirements.txt \
- && rm /tmp/requirements.txt
+ && pip install --no-cache-dir -r /tmp/requirements-${ODOO_VERSION}.txt \
+ && rm /tmp/requirements-*.txt
 
 # ── Create odoo user and directories ──────────────────────────────────────────
 RUN groupadd -g 1000 odoo \
