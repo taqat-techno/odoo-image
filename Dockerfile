@@ -42,7 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 
 COPY requirements-*.txt /tmp/
-RUN pip install --no-cache-dir --upgrade pip setuptools \
+RUN pip install --no-cache-dir --upgrade pip "setuptools<80" \
  && pip install --no-cache-dir \
     -r /tmp/requirements-${ODOO_VERSION}.txt \
     debugpy \
@@ -110,8 +110,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 COPY --from=builder /usr/local/lib/python${PYTHON_VERSION}/site-packages \
                     /usr/local/lib/python${PYTHON_VERSION}/site-packages
 
-# ── Ensure setuptools/pkg_resources is present (not bundled in Python 3.12+) ──
-RUN pip install --no-cache-dir setuptools
+# ── setuptools<80 required: pkg_resources removed as standalone in 80+ ────────
+RUN pip install --no-cache-dir "setuptools<80"
 
 # ── Create odoo user and directories ──────────────────────────────────────────
 RUN groupadd -g 1000 odoo \
