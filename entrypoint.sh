@@ -19,9 +19,9 @@ export PYTHONPATH=/opt/odoo/source
 # Auto-detect the correct entry point
 # v19 uses setup/odoo; v14-v18 use odoo-bin
 if [ -f /opt/odoo/source/setup/odoo ]; then
-    ODOO_BIN="python /opt/odoo/source/setup/odoo"
+    ODOO_SCRIPT=/opt/odoo/source/setup/odoo
 elif [ -f /opt/odoo/source/odoo-bin ]; then
-    ODOO_BIN="python /opt/odoo/source/odoo-bin"
+    ODOO_SCRIPT=/opt/odoo/source/odoo-bin
 else
     echo "ERROR: Cannot find Odoo entry point (setup/odoo or odoo-bin)"
     echo "       Is the correct odoo-container branch checked out?"
@@ -37,19 +37,14 @@ if [ "${DEV_MODE}" = "1" ]; then
     EXTRA_ARGS="${EXTRA_ARGS} --dev=all"
 fi
 
-# Remote debugger (debugpy)
+# Remote debugger (debugpy is pre-installed in the image)
 if [ "${ENABLE_DEBUGGER}" = "1" ]; then
     echo "INFO: Debugger enabled on port 5678 (waiting for IDE to attach...)"
-    pip install --quiet debugpy
     exec python -m debugpy \
         --listen 0.0.0.0:5678 \
         --wait-for-client \
-        /opt/odoo/source/setup/odoo 2>/dev/null \
-        || exec python -m debugpy \
-            --listen 0.0.0.0:5678 \
-            --wait-for-client \
-            /opt/odoo/source/odoo-bin \
+        ${ODOO_SCRIPT} \
         "$@" ${EXTRA_ARGS}
 fi
 
-exec ${ODOO_BIN} "$@" ${EXTRA_ARGS}
+exec python ${ODOO_SCRIPT} "$@" ${EXTRA_ARGS}
