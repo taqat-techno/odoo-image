@@ -110,6 +110,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 COPY --from=builder /usr/local/lib/python${PYTHON_VERSION}/site-packages \
                     /usr/local/lib/python${PYTHON_VERSION}/site-packages
 
+# ── Ensure setuptools/pkg_resources is present (not bundled in Python 3.12+) ──
+RUN pip install --no-cache-dir setuptools
+
 # ── Create odoo user and directories ──────────────────────────────────────────
 RUN groupadd -g 1000 odoo \
  && useradd -u 1000 -g odoo -m -s /bin/bash odoo \
