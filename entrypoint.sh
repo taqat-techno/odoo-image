@@ -28,6 +28,12 @@ else
     exit 1
 fi
 
+# Warn if data_dir is not configured (filestore will be ephemeral)
+if [ -f /etc/odoo/odoo.conf ] && ! grep -q "^data_dir" /etc/odoo/odoo.conf; then
+    echo "WARNING: 'data_dir' not set in odoo.conf. Filestore will be lost on container restart."
+    echo "WARNING: Add 'data_dir = /var/lib/odoo' to your conf file for persistent assets."
+fi
+
 # Build extra arguments
 EXTRA_ARGS=""
 

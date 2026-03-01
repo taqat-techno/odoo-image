@@ -134,6 +134,56 @@ The `/init-docker-container` skill auto-detects the Odoo version, generates `doc
 
 ---
 
+## Performance Best Practices
+
+These settings are **critical** for production-ready containers. The `/init-docker-container` command applies them automatically, but if you're writing configs manually, check every item.
+
+### 1. Set `data_dir` (CRITICAL)
+
+Without `data_dir`, Odoo writes compiled CSS/JS assets and filestore to `/home/odoo/.local/share/Odoo/` — an ephemeral path inside the container. On every restart, all assets are lost and must be recompiled from scratch (**19-49 second page loads**).
+
+```ini
+# In your odoo.conf — REQUIRED
+data_dir = /var/lib/odoo
+```
+
+This writes to the Docker volume mounted at `/var/lib/odoo/filestore`, which persists across restarts. The entrypoint will print a WARNING if this is missing.
+
+### 2. Use Nginx Reverse Proxy (CRITICAL)
+
+Odoo 17+ has **no built-in HTTP compression**. Without nginx, every page load transfers ~2 MB of raw CSS/JS. Adding nginx with gzip reduces this to ~440 KB (**78% reduction, 19x faster cold loads**).
+
+Your `docker-compose.yml` should have 3 services:
+```
+Browser → nginx (gzip + cache) :8069 → odoo (internal) → db
+```
+
+Key nginx config points:
+- `gzip on` with level 6 for text/css/js/json
+- `/websocket` → proxy to odoo:8072 (WebSocket upstream)
+- `/web/assets/` → 365-day cache with `immutable`
+- `proxy_mode = True` in odoo.conf when behind nginx
+
+### 3. PostgreSQL Healthcheck
+
+Always specify `-d` in `pg_isready` to avoid `FATAL: database "odoo" does not exist` log spam:
+
+```yaml
+healthcheck:
+  test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-odoo} -d ${POSTGRES_DB:-postgres}"]
+```
+
+### 4. Workers Mode
+
+| Setup | `workers` | Why |
+|-------|-----------|-----|
+| **Without nginx** | `0` | Gevent handles HTTP + WebSocket on port 8069 |
+| **With nginx** | `0` (dev) or `2-4` (prod) | Nginx routes `/websocket` → 8072 |
+
+Setting `workers >= 1` without nginx causes `RuntimeError: Couldn't bind the websocket` (500 errors).
+
+---
+
 ## Build Locally
 
 ```bash
