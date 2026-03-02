@@ -54,9 +54,14 @@ FROM python:${PYTHON_VERSION}-slim-${DEBIAN_CODENAME}
 ARG ODOO_VERSION
 ARG PYTHON_VERSION
 ARG DEBIAN_CODENAME
+ARG BUILD_DATE
+ARG VCS_REF
 
 LABEL maintainer="TaqaTechno <info@taqatechno.com>" \
       org.opencontainers.image.title="Odoo Enterprise ${ODOO_VERSION}" \
+      org.opencontainers.image.version="${ODOO_VERSION}.0" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.source="https://github.com/taqat-techno/odoo-image" \
       org.opencontainers.image.vendor="TaqaTechno"
 
@@ -78,6 +83,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-liberation \
     fontconfig \
     gettext \
+    tzdata \
     curl \
     gnupg \
     ca-certificates \
@@ -129,8 +135,7 @@ RUN groupadd -g 1000 odoo \
     /etc/odoo
 
 # ── Entrypoint ─────────────────────────────────────────────────────────────────
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY --chmod=755 entrypoint.sh /entrypoint.sh
 
 # ── Runtime ───────────────────────────────────────────────────────────────────
 USER odoo
@@ -138,7 +143,12 @@ WORKDIR /opt/odoo
 
 EXPOSE 8069 8072
 
-VOLUME ["/opt/odoo/source", "/opt/odoo/custom-addons", "/var/log/odoo", "/var/lib/odoo/filestore", "/etc/odoo"]
+VOLUME ["/opt/odoo/source", "/opt/odoo/custom-addons", "/var/log/odoo", "/var/lib/odoo", "/etc/odoo"]
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -sf http://localhost:8069/web/health || curl -sf http://localhost:8069/web/login || exit 1
+
+STOPSIGNAL SIGINT
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["--config=/etc/odoo/odoo.conf"]

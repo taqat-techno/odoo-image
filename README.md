@@ -85,7 +85,7 @@ docker run -d \
 | `/opt/odoo/custom-addons` | Custom / project modules |
 | `/etc/odoo/odoo.conf` | Odoo configuration file |
 | `/var/log/odoo` | Log files |
-| `/var/lib/odoo/filestore` | Uploaded attachments & filestore |
+| `/var/lib/odoo` | Filestore, sessions, and compiled asset cache (**not** `/var/lib/odoo/filestore`) |
 
 ---
 
@@ -95,6 +95,9 @@ docker run -d \
 |----------|---------|-------------|
 | `DEV_MODE` | `0` | Set to `1` → adds `--dev=all` (auto-reload, debug assets) |
 | `ENABLE_DEBUGGER` | `0` | Set to `1` → starts debugpy on port `5678`, waits for client |
+| `WAIT_FOR_DB` | `0` | Set to `1` → waits up to 30s for PostgreSQL before starting Odoo |
+| `LOG_LEVEL` | *(none)* | Override Odoo log level (`debug`, `info`, `warn`, `error`, `critical`) |
+| `ODOO_EXTRA_ARGS` | *(none)* | Pass arbitrary extra CLI args to Odoo (e.g., `--test-enable`) |
 
 ```bash
 # Development mode with live reload
@@ -102,6 +105,9 @@ docker run -e DEV_MODE=1 alakosha/odoo-image:19.0
 
 # Remote debugging (VS Code / PyCharm)
 docker run -e ENABLE_DEBUGGER=1 -p 5678:5678 alakosha/odoo-image:19.0
+
+# Wait for DB + debug logging
+docker run -e WAIT_FOR_DB=1 -e LOG_LEVEL=debug alakosha/odoo-image:19.0
 ```
 
 ---
@@ -147,7 +153,7 @@ Without `data_dir`, Odoo writes compiled CSS/JS assets and filestore to `/home/o
 data_dir = /var/lib/odoo
 ```
 
-This writes to the Docker volume mounted at `/var/lib/odoo/filestore`, which persists across restarts. The entrypoint will print a WARNING if this is missing.
+This writes to the Docker volume mounted at `/var/lib/odoo`, which persists filestore, sessions, and compiled assets across restarts. The entrypoint will print a WARNING if this is missing.
 
 ### 2. Use Nginx Reverse Proxy (CRITICAL)
 

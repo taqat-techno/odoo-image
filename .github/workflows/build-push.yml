@@ -65,6 +65,8 @@ jobs:
             ODOO_VERSION=${{ matrix.odoo_version }}
             PYTHON_VERSION=${{ matrix.python_version }}
             DEBIAN_CODENAME=${{ matrix.debian_codename }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
           tags: |
             alakosha/odoo-image:${{ matrix.odoo_version }}.0
             ${{ matrix.odoo_version == '19' && 'alakosha/odoo-image:latest' || '' }}
