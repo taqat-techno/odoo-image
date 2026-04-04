@@ -21,6 +21,19 @@ elif [ ! -d /opt/odoo/source/odoo ] && [ ! -f /opt/odoo/source/odoo-bin ] && [ !
     exit 1
 fi
 
+# ── Fix ownership of writable directories ────────────────────────────────────
+# Handles UID migration (e.g., old images used UID 101, current uses 1000).
+# Only runs chown when the top-level dir ownership differs — avoids expensive
+# recursive chown on every startup when permissions are already correct.
+if [ "$(id -u)" = '0' ]; then
+    for dir in /var/lib/odoo /var/log/odoo /etc/odoo; do
+        if [ -d "$dir" ] && [ "$(stat -c %u "$dir" 2>/dev/null)" != "1000" ]; then
+            echo "INFO: Fixing ownership of $dir (was UID $(stat -c %u "$dir"), setting to odoo:odoo)..."
+            chown -R odoo:odoo "$dir"
+        fi
+    done
+fi
+
 # ── Optional: Source caching for Windows/WSL2 performance ─────────────────────
 # SOURCE_CACHE=0 (default) — use bind mount directly (backward compatible)
 # SOURCE_CACHE=1           — always cache source to fast ext4 volume
@@ -188,14 +201,27 @@ if [ -n "${ODOO_EXTRA_ARGS}" ]; then
     EXTRA_ARGS="${EXTRA_ARGS} ${ODOO_EXTRA_ARGS}"
 fi
 
+# ── Launch Odoo (drop privileges if running as root) ────────────────────────
 # Remote debugger (debugpy is pre-installed in the image)
 if [ "${ENABLE_DEBUGGER}" = "1" ]; then
     echo "INFO: Debugger enabled on port 5678 (waiting for IDE to attach...)"
-    exec python -m debugpy \
-        --listen 0.0.0.0:5678 \
-        --wait-for-client \
-        "${ODOO_SCRIPT}" \
-        "$@" ${EXTRA_ARGS}
+    if [ "$(id -u)" = '0' ]; then
+        exec gosu odoo python -m debugpy \
+            --listen 0.0.0.0:5678 \
+            --wait-for-client \
+            "${ODOO_SCRIPT}" \
+            "$@" ${EXTRA_ARGS}
+    else
+        exec python -m debugpy \
+            --listen 0.0.0.0:5678 \
+            --wait-for-client \
+            "${ODOO_SCRIPT}" \
+            "$@" ${EXTRA_ARGS}
+    fi
 fi
 
-exec python "${ODOO_SCRIPT}" "$@" ${EXTRA_ARGS}
+if [ "$(id -u)" = '0' ]; then
+    exec gosu odoo python "${ODOO_SCRIPT}" "$@" ${EXTRA_ARGS}
+else
+    exec python "${ODOO_SCRIPT}" "$@" ${EXTRA_ARGS}
+fi

@@ -113,6 +113,12 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
  && npm cache clean --force \
  && rm -rf /var/lib/apt/lists/*
 
+# ── gosu for secure privilege dropping ────────────────────────────────────────
+# Entrypoint starts as root to fix volume ownership, then drops to odoo user.
+RUN apt-get update && apt-get install -y --no-install-recommends gosu \
+ && rm -rf /var/lib/apt/lists/* \
+ && gosu nobody true
+
 # ── Copy compiled Python packages from builder ────────────────────────────────
 COPY --from=builder /usr/local/lib/python${PYTHON_VERSION}/site-packages \
                     /usr/local/lib/python${PYTHON_VERSION}/site-packages
@@ -139,7 +145,8 @@ RUN groupadd -g 1000 odoo \
 COPY --chmod=755 entrypoint.sh /entrypoint.sh
 
 # ── Runtime ───────────────────────────────────────────────────────────────────
-USER odoo
+# NOTE: No USER directive — entrypoint starts as root to fix volume ownership,
+# then drops to odoo (UID 1000) via gosu before starting Odoo.
 WORKDIR /opt/odoo
 
 EXPOSE 8069 8072
