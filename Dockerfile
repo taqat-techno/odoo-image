@@ -84,6 +84,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fontconfig \
     gettext \
     tzdata \
+    rsync \
     curl \
     gnupg \
     ca-certificates \
@@ -143,7 +144,7 @@ WORKDIR /opt/odoo
 
 EXPOSE 8069 8072
 
-VOLUME ["/opt/odoo/source", "/opt/odoo/custom-addons", "/var/log/odoo", "/var/lib/odoo", "/etc/odoo"]
+VOLUME ["/opt/odoo/custom-addons", "/var/log/odoo", "/var/lib/odoo", "/etc/odoo"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
     CMD curl -sf http://localhost:8069/web/health || curl -sf http://localhost:8069/web/login || exit 1

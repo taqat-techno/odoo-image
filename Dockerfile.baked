@@ -1,0 +1,30 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# TaqaTechno — Odoo Enterprise Baked Source Image
+# Extends the base image with Odoo source pre-copied for zero I/O overhead.
+#
+# Build:
+#   docker build -f Dockerfile.baked \
+#     --build-arg ODOO_VERSION=19 \
+#     --build-arg SOURCE_DIR=../odoo-19 \
+#     -t alakosha/odoo-image:19.0-baked .
+# ──────────────────────────────────────────────────────────────────────────────
+
+ARG ODOO_VERSION=19
+FROM alakosha/odoo-image:${ODOO_VERSION}.0
+
+ARG SOURCE_DIR=./odoo-source
+
+USER root
+
+COPY --chown=odoo:odoo ${SOURCE_DIR}/ /opt/odoo/source/
+
+# Trim unnecessary files to reduce image size
+RUN find /opt/odoo/source -name '*.po' -delete 2>/dev/null || true \
+ && find /opt/odoo/source -name '*.pot' -delete 2>/dev/null || true \
+ && rm -rf /opt/odoo/source/.git 2>/dev/null || true \
+ && find /opt/odoo/source -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true \
+ && python -m compileall -q -j0 /opt/odoo/source/odoo/ 2>/dev/null || true
+
+USER odoo
+
+ENV BAKED_SOURCE=1
